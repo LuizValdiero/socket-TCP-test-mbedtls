@@ -24,16 +24,13 @@
 #include "mbedtls/error.h"
 #include "mbedtls/certs.h"
 // */
-#include "certs/_.herokuapp.com.pem.h"
+//#include "certs/_.herokuapp.com.pem.h"
+#include "certs/_.lisha.ufsc.br.pem.h"
 
-#define ADDR "localhost"
-#define PORT 443
-#define LEN_BUFFER 2048
+//#define ADDR "api-project-iot.herokuapp.com"
 
-#define GET_REQUEST \
-    "GET / HTTP/1.0\r\n"\
-    "Host: api-project-iot.herokuapp.com\r\n"\
-    "Content-Type: application/json\r\n\r\n"
+#include "my_post.h"
+
 
 struct sockaddr_in server;
 
@@ -57,7 +54,7 @@ void get_args(int argc, char ** argv, char * server_addr, int * port) {
         return;
     }
     memset(server_addr, '\0', SERVER_ADDR_SIZE);
-    memcpy(server_addr, ADDR, sizeof(ADDR));
+    memcpy(server_addr, HOSTNAME, sizeof(HOSTNAME));
     *port = PORT;
 } 
 
@@ -128,7 +125,6 @@ int main( int argc, char ** argv)
 
     printf( "\n  . server_address: %s, port: %d\n", server_addr, port);
     
-
     connect_tcp(&sockfd, &server, server_addr, port);
 
     int ret = 1;
@@ -170,8 +166,10 @@ int main( int argc, char ** argv)
     printf( "  . Loading the CA root certificate ..." );
     fflush( stdout );
 
-    ret = mbedtls_x509_crt_parse( &cacert, (const unsigned char *) api_ca_crt,
-                          api_ca_crt_len );
+    //ret = mbedtls_x509_crt_parse( &cacert, (const unsigned char *) api_ca_crt,
+    //                      api_ca_crt_len );
+    ret = mbedtls_x509_crt_parse( &cacert, (const unsigned char *) lisha_ca_crt, \
+                          lisha_ca_crt_len );
     if( ret < 0 )
     {
         printf( " failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n", -ret );
@@ -225,7 +223,7 @@ int main( int argc, char ** argv)
         goto exit;
     }
 
-    if( ( ret = mbedtls_ssl_set_hostname( &ssl, ADDR) ) != 0 )
+    if( ( ret = mbedtls_ssl_set_hostname( &ssl, HOSTNAME) ) != 0 )
     {
         printf( " failed\n  ! mbedtls_ssl_set_hostname returned %d\n\n", ret );
         goto exit;
@@ -263,10 +261,12 @@ int main( int argc, char ** argv)
         char vrfy_buf[512];
 
         printf( " failed\n" );
-
+        
         mbedtls_x509_crt_verify_info( vrfy_buf, sizeof( vrfy_buf ), "  ! ", flags );
 
         printf( "%s\n", vrfy_buf );
+
+        //goto exit;
     }
     else
         printf( " ok\n" );
@@ -277,7 +277,7 @@ int main( int argc, char ** argv)
     printf( "  > Write to server:" );
     fflush( stdout );
 
-    len = sprintf( (char *) buffer_out, GET_REQUEST );
+    len = mount_request((char *) buffer_out);
 
     while( ( ret = mbedtls_ssl_write( &ssl,(const unsigned char *) buffer_out, len ) ) <= 0 )
     {
@@ -294,12 +294,12 @@ int main( int argc, char ** argv)
     /*
      * 7. Read the HTTP response
      */
-    printf( "  < Read from server:" );
+    printf( "\n\n  < Read from server:" );
     fflush( stdout );
 
     do {
         len = sizeof( buffer_in ) - 1;
-        memset( buffer_in, 0, sizeof( buffer_in ) );
+        memset( buffer_in, 0, LEN_BUFFER);
         ret = mbedtls_ssl_read( &ssl, (unsigned char *) buffer_in, len );
 
         if( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
@@ -321,7 +321,7 @@ int main( int argc, char ** argv)
         }
 
         len = ret;
-        printf( " %d bytes read\n\n%s", len, (char *) buffer_in );
+        printf( " %d bytes read\n\n%s\n\n", len, (char *) buffer_in );
     } while( 1 );
 
     mbedtls_ssl_close_notify( &ssl );
