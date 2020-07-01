@@ -5,6 +5,8 @@ FLAGS = -Wall -Wextra  -O2
 MBEDTLS_FLAGS = -I$(LIBS_DIR) -D_FILE_OFFSET_BITS=64 -L$(LIBS_DIR) -lmbedtls -lmbedx509 -lmbedcrypto
 
 SRCS = my_test.c
+SRCS += data_handler/data_handler.c
+SRCS += http_handler/http_handler.c
 
 .PHONY: all my_test
 

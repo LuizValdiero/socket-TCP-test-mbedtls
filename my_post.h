@@ -1,73 +1,62 @@
 #include <string.h>
 
-#define HOSTNAME "iot.lisha.ufsc.br"
+#include "data_handler/data_handler.h"
+#include "http_handler/http_handler.h"
 
-#define ROUTE_REQUEST "/api/get.php"
 
-#define PORT 443
-#define LEN_BUFFER 2048
+/*
+2.1. Query data URL: https://iot.lisha.ufsc.br/api/get.php
+Body: 2.1 series
 
-#define METHOD_REQUEST "POST"
+2.2. Create series URL for create: https://iot.lisha.ufsc.br/api/create.php
+Body: 2.2 series
 
-#define BODY_VERSION    "'1.1'"
-#define BODY_UNIT       "2147483648"
-#define BODY_DOMAIN     "'multicore'"
+2.3. Insert data URL: https://iot.lisha.ufsc.br/api/put.php
+Body: 2.3 smartdata
 
-#define BODY_T0 "1563365878640000"
-#define BODY_T1 "1563366002746000"
+versio 1.1
+3.1. Create series (Binary) URL for create: https://iot.lisha.ufsc.br/api/create.php
+Body: Series
+3.2. Insert data (Binary) URL: https://iot.lisha.ufsc.br/api/put.php
+Body: SmartData
 
-#define BODY_DEV_A "900"
-#define BODY_DEV_B "1200"
+*/
 
-#define BODY \
-"[{" \
-"    'series' : {" \
-"        'version' : "BODY_VERSION \
-"        'unit' : "BODY_UNIT \
-"        'x' : 0" \
-"        'y' : 0" \
-"        'z' : 0" \
-"        'r' : 0" \
-"        't0' : "BODY_T0 \
-"        't1' : "BODY_T1 \
-"        'dev' : "BODY_DEV_A \
-"        'workflow' : 0" \
-"    }" \
-"    'credentials' : {" \
-"        'domain' : "BODY_DOMAIN"" \
-"    }" \
-"}" \
-"{" \
-"    'series' : {" \
-"        'version' : "BODY_VERSION \
-"        'unit' : "BODY_UNIT \
-"        'x' : 0" \
-"        'y' : 0" \
-"        'z' : 0" \
-"        'r' : 0" \
-"        't0' : "BODY_T0 \
-"        't1' : "BODY_T1 \
-"        'dev' : "BODY_DEV_B \
-"        'workflow' : 0" \
-"    }" \
-"    'credentials' : {" \
-"        'domain' : "BODY_DOMAIN"" \
-"    }" \
-"}]"
+int mount_body(char * buffer, int (*print)(char *, void*), void * data, struct Credentials * credential) {
+    int size_data = sprintf(buffer,"{");
+    size_data += print(buffer + size_data, data);
+    /*
+    if(workflow) {
+        printf(" \n size_data: %d", size_data);
+        size_data = strrchr(buffer, '}') - buffer;
+        size_data += sprintf(buffer+size_data, ", \"workflow\":%s}", workflow);
+    }
+    */
+    if(credential) {
+        size_data += credentials_print_json(buffer + size_data, credential);
+    }
+    size_data += sprintf(buffer + size_data, "}");
+    return size_data;
+}
 
-#define BODY2 \
-"{\"series\": {\"r\": 0, \"version\": \"1.1\", "\
-"\"t0\": 1563365878640000, \"workflow\": 0,"\
-" \"y\": 0, \"x\": 0, \"z\": 0, \"dev\": 903,"\
-" \"unit\": 2147483648, \"t1\": 1563366002746000}, "\
-"\"credentials\": {\"domain\": \"multicore\"}}"
+int mount_request(char * buff, struct HttpHeader_t * httpHeader, data_type_t data_type, void * data, struct Credentials * credentials) {
+    char buffer_data[512];
+    
+    int size_data = 0;
+    if(data_type == SERIE)
+        size_data = mount_body(buffer_data, series_print_json, data, credentials);
 
-int mount_request(char * buff) {
-    return sprintf(buff, \
-                METHOD_REQUEST" "ROUTE_REQUEST" HTTP/1.1\r\n" \
-                "Host: "HOSTNAME"\r\n" \
-                "Content-Length: %lu\r\n" \
-                "Content-Type: application/json\r\n\r\n" \
-                BODY2, \
-                strlen(BODY2));
+    if(data_type == RECORD)
+        size_data = mount_body(buffer_data, record_print_json, data, credentials);
+
+    if (!size_data)
+        return 0;
+
+    printf("size_data: %d\n", size_data);
+
+    httpHeader->content_length = size_data;
+    int displacement = mount_http_header(buff, httpHeader);
+
+    memcpy(buff+displacement, buffer_data, size_data);
+    return displacement + size_data;
 }

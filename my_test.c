@@ -10,12 +10,6 @@
 
 #include <netdb.h>
 
-//#include <mbedtls/net_sockets.h>
-//#include <mbedtls/ssl.h>
-//#include <mbedtls/entropy.h>
-//#include <mbedtls/ctr_drbg.h>
-
-//*
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/debug.h"
 #include "mbedtls/ssl.h"
@@ -23,14 +17,11 @@
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/error.h"
 #include "mbedtls/certs.h"
-// */
+
 //#include "certs/_.herokuapp.com.pem.h"
 #include "certs/_.lisha.ufsc.br.pem.h"
 
-//#define ADDR "api-project-iot.herokuapp.com"
-
 #include "my_post.h"
-
 
 struct sockaddr_in server;
 
@@ -38,6 +29,10 @@ int sockfd;
     
 int len = sizeof(server);
 int slen;
+
+#define HOSTNAME "iot.lisha.ufsc.br"
+#define PORT 443
+#define LEN_BUFFER 2048
 
 unsigned char buffer_in[LEN_BUFFER];
 unsigned char buffer_out[LEN_BUFFER];
@@ -69,15 +64,9 @@ void connect_tcp(int * sockfd, struct sockaddr_in * server, const char * server_
     {
         printf("Socket open - fd: %d\n", *sockfd);
     }
-    //(void)&server_addr;
-    //struct hostent *hostStructure = gethostbyname("api-project-iot.herokuapp.com");
-    //struct hostent *hostStructure = gethostbyname("localhost");
     struct hostent *hostStructure = gethostbyname(server_addr);
     
     printf("Socket open - host name: %s\n", hostStructure->h_name);
-    printf("Socket open - host addr length: %d\n", hostStructure->h_length);
-    printf("Socket open - host addr type: %d\n", hostStructure->h_addrtype);
-
     server->sin_family       = AF_INET;
     server->sin_port         = htons(port);
     
@@ -87,16 +76,13 @@ void connect_tcp(int * sockfd, struct sockaddr_in * server, const char * server_
     }
     for (int  i = 0; addr_list[i] != NULL; i++) {
         printf("hostStructure->h_addr_list[%d]: %s\n", i, inet_ntoa(*addr_list[i]));
-        //inet_aton(inet_ntoa(*addr_list[i]), &server->sin_addr);
         server->sin_addr = *addr_list[i];
-        //server->sin_addr.s_addr  = server_addr;
 
         memset(server->sin_zero, 0x0, 8);
-//      inet_aton("66.94.230.32", &addr);
         if (connect(*sockfd, (struct sockaddr*) server, sizeof(*server)) == -1)
         {
             perror("Error connecting to the server");
-            //exit(1);
+            exit(1);
         } else {
             printf("Sucess Conection TCP/IP\n");
             return;
@@ -168,13 +154,20 @@ int main( int argc, char ** argv)
 
     //ret = mbedtls_x509_crt_parse( &cacert, (const unsigned char *) api_ca_crt,
     //                      api_ca_crt_len );
-    ret = mbedtls_x509_crt_parse( &cacert, (const unsigned char *) lisha_ca_crt, \
-                          lisha_ca_crt_len );
+    ret = mbedtls_x509_crt_parse( &cacert, (const unsigned char *) lisha_ca_crt, lisha_ca_crt_len );
     if( ret < 0 )
     {
         printf( " failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n", -ret );
         goto exit;
     }
+
+    printf("\ncacert.valid_from: %d-%d-%d \n",cacert.valid_from.year,cacert.valid_from.mon,cacert.valid_from.day);
+    printf("cacert.valid_to: %d \n",cacert.valid_to.year);
+    printf("cacert.ca_istrue: %d \n",cacert.ca_istrue);
+    printf("cacert.key_usage: 0x%d \n",cacert.key_usage);
+
+    
+
 
     printf( " ok (%d skipped)\n", ret );
 
@@ -216,6 +209,8 @@ int main( int argc, char ** argv)
     mbedtls_ssl_conf_ca_chain( &conf, &cacert, NULL );
     mbedtls_ssl_conf_rng( &conf, mbedtls_ctr_drbg_random, &ctr_drbg );
     mbedtls_ssl_conf_dbg( &conf, my_debug, stdout );
+
+//    mbedtls_ssl_conf_max_version(&conf, NULL, MBEDTLS_SSL_MINOR_VERSION_1);
 
     if( ( ret = mbedtls_ssl_setup( &ssl, &conf ) ) != 0 )
     {
@@ -271,13 +266,29 @@ int main( int argc, char ** argv)
     else
         printf( " ok\n" );
 
+    printf("server addr: %s\n", inet_ntoa(server.sin_addr));
     /*
      * 6. Write the GET request
      */
     printf( "  > Write to server:" );
     fflush( stdout );
+    
+    
+    memset(buffer_out, 0, LEN_BUFFER);
+    const char * hostname = HOSTNAME;
 
-    len = mount_request((char *) buffer_out);
+    struct HttpHeader_t httpHeader = { \
+        .method = POST, \
+        .path = API_GET, \
+        .content_type = JSON, \
+        .hostname = hostname, \
+        .content_length = 0};
+    
+    struct Serie serie = {17, 2224179556, 741868840, 679816441, \
+                    25300, 0, 0, 1567021716000000, 1567028916000000};
+    struct Credentials credentials = {"smartlisha", "", ""};
+
+    len = mount_request((char *) buffer_out, &httpHeader, SERIE, &serie, &credentials);
 
     while( ( ret = mbedtls_ssl_write( &ssl,(const unsigned char *) buffer_out, len ) ) <= 0 )
     {
@@ -321,7 +332,7 @@ int main( int argc, char ** argv)
         }
 
         len = ret;
-        printf( " %d bytes read\n\n%s\n\n", len, (char *) buffer_in );
+        printf( " %d bytes read\n--->\n%s\n<---\n", len, (char *) buffer_in );
     } while( 1 );
 
     mbedtls_ssl_close_notify( &ssl );
