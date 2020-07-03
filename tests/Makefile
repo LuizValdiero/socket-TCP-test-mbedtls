@@ -1,8 +1,9 @@
 CC := gcc
 
 SRCS =
-SRCS += ../data_handler/data_handler.c
-SRCS += ../http_handler/http_handler.c
+SRCS += ../src/my_post.c
+SRCS += ../src/data_handler.c
+SRCS += ../src/http_handler.c
 SRCS += test_mount_request/test_mount_request.c
 
 .PHONY: all mount_request

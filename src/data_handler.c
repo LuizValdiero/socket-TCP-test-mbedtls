@@ -2,8 +2,8 @@
 #include "data_handler.h"
 
 
-//const int size_serie = (( 8 + 6*32 + 2*64) >> 2);
-//const int size_record = (8 + 6*32 + 64 + (double)) >>2;
+//const int size_serie = (( 8 + 6*32 + 2*64) >> 3);
+//const int size_record = (8 + 6*32 + 64 + (double)) >>3;
 
 const int size_data_list[] = { size_serie, size_record};
 
@@ -37,22 +37,24 @@ int credentials_print(char * buffer, struct Credentials * credentials) {
     return displacement;
 }
 
-int credentials_print_json(char * buffer, struct Credentials * credentials)
+int credentials_print_json(char * buffer, int size, struct Credentials * credentials)
 {
-    return sprintf(buffer, ", \"credentials\": { \"domain\":\"%s\"," \
+    return snprintf(buffer, size, ", \"credentials\": { \"domain\":\"%s\"," \
         " \"username\":\"%s\", \"password\":\"%s\"}", \
         credentials->domain, credentials->username, credentials->password);
 }
 
-int series_print(char * buffer, void * data)
+int series_print(char * buffer, int size, void * data)
 {
+    if(size < size_data_list[RECORD])
+        return 0;
     memcpy(buffer, (struct Serie *)data, size_data_list[SERIE]);
     return size_data_list[SERIE];
 }
 
-int series_print_json(char * buffer, void * data){
+int series_print_json(char * buffer, int size, void * data){
     struct Serie * serie = (struct Serie *) data;
-    return sprintf(buffer, \
+    return snprintf(buffer, size, \
         "\"series\": {\"version\": \"%d.%d\", " \
         "\"unit\": %u, \"x\": %d, \"y\": %d, \"z\": %d, " \
         "\"dev\": %d,  \"r\": %u, " \
@@ -63,15 +65,17 @@ int series_print_json(char * buffer, void * data){
         serie->t0, serie->t1);
 }
 
-int record_print(char * buffer, void * data)
+int record_print(char * buffer, int size, void * data)
 {
+    if(size < size_data_list[RECORD])
+        return 0;
     memcpy(buffer, (struct Record *)data, size_data_list[RECORD]);
     return size_data_list[RECORD];
 }
 
-int record_print_json(char * buffer, void * data) {
+int record_print_json(char * buffer, int size, void * data) {
     struct Record * record = (struct Record *) data;
-    return sprintf(buffer, \
+    return snprintf(buffer, size, \
         "\"smartdata\": [{\"version\": \"%d.%d\", " \
         "\"unit\": %u, \"value\": %f, \"uncertainty\": %u, "\
         "\"x\": %d, \"y\": %d, \"z\": %d, " \

@@ -21,7 +21,7 @@
 //#include "certs/_.herokuapp.com.pem.h"
 #include "certs/_.lisha.ufsc.br.pem.h"
 
-#include "my_post.h"
+#include "src/my_post.h"
 
 struct sockaddr_in server;
 
@@ -288,7 +288,7 @@ int main( int argc, char ** argv)
                     25300, 0, 0, 1567021716000000, 1567028916000000};
     struct Credentials credentials = {"smartlisha", "", ""};
 
-    len = mount_request((char *) buffer_out, &httpHeader, SERIE, &serie, &credentials);
+    len = mount_request((char *) buffer_out, LEN_BUFFER, &httpHeader, SERIE, &serie, &credentials);
 
     while( ( ret = mbedtls_ssl_write( &ssl,(const unsigned char *) buffer_out, len ) ) <= 0 )
     {

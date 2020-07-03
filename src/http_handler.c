@@ -14,8 +14,8 @@ const char * content_type_list[] = { \
     NULL
 };
 
-int mount_http_header(char * buff, struct HttpHeader_t * httpHeader) {
-    return sprintf(buff, \
+int mount_http_header(char * buff, int size, struct HttpHeader_t * httpHeader) {
+    return snprintf(buff, size, \
                 "%s %s HTTP/1.1\r\n" \
                 "Host: %s\r\n" \
                 "Content-Length: %d\r\n" \

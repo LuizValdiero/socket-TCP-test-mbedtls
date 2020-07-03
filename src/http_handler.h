@@ -21,7 +21,7 @@ struct HttpHeader_t {
     int content_length;
 } HttpHeader;
 
-int mount_http_header(char * buff, struct HttpHeader_t * httpHeader);
+int mount_http_header(char * buff, int size, struct HttpHeader_t * httpHeader);
 
 #endif // HTTP_HANDLER_H
 

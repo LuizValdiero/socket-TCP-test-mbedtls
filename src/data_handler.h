@@ -8,11 +8,57 @@
 
 typedef enum data_type_t {SERIE, RECORD} data_type_t;
 
-#define size_serie 164
-#define size_record 164
+#define size_serie 41
+#define size_record 41
 #define size_smartdata 0
 
 extern const int size_data_list[];
+
+struct Serie {
+    uint8_t version;
+    uint32_t unit;
+    int32_t x;
+    int32_t y;
+    int32_t z;
+    int32_t dev;
+    uint32_t r;
+    uint64_t t0;
+    uint64_t t1;
+};
+
+struct Record {
+    uint8_t version;
+    uint32_t unit;
+    double value;
+    uint32_t uncertainty;
+    int32_t x;
+    int32_t y;
+    int32_t z;
+    uint32_t dev;
+    uint64_t t;
+};
+
+struct Credentials
+{
+    char * domain;
+    char * username;
+    char *  password;
+};
+
+int write_size_and_value(char * buffer, char * value);
+int get_version_high(uint8_t version);
+int get_version_low(uint8_t version);
+
+int credentials_print(char * buffer, struct Credentials * credentials);
+int credentials_print_json(char * buffer, int size, struct Credentials * credentials);
+
+int series_print(char * buffer, int size, void * data);
+int series_print_json(char * buffer, int size, void * data);
+
+int record_print(char * buffer, int size, void * data);
+int record_print_json(char * buffer, int size, void * data);
+
+#endif // DATA_HANDLER_H
 
 /*
 2.
@@ -39,18 +85,6 @@ struct Series {
     unsigned long long t1;
 }
 */
-
-struct Serie {
-    uint8_t version;
-    uint32_t unit;
-    int32_t x;
-    int32_t y;
-    int32_t z;
-    int32_t dev;
-    uint32_t r;
-    uint64_t t0;
-    uint64_t t1;
-};
 
 /*
 2.
@@ -90,37 +124,3 @@ struct SmartData {
     unsigned long long t;
 }
 */
-struct Record {
-    uint8_t version;
-    uint32_t unit;
-    double value;
-    uint32_t uncertainty;
-    int32_t x;
-    int32_t y;
-    int32_t z;
-    uint32_t dev;
-    uint64_t t;
-};
-
-struct Credentials
-{
-    char * domain;
-    char * username;
-    char *  password;
-};
-
-int write_size_and_value(char * buffer, char * value);
-int get_version_high(uint8_t version);
-int get_version_low(uint8_t version);
-
-int credentials_print(char * buffer, struct Credentials * credentials);
-int credentials_print_json(char * buffer, struct Credentials * credentials);
-
-int series_print(char * buffer, void * data);
-int series_print_json(char * buffer, void * data);
-
-int record_print(char * buffer, void * data);
-int record_print_json(char * buffer, void * data);
-
-
-#endif // DATA_HANDLER_H
