@@ -5,122 +5,44 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "data_structure/record.h"
+#include "data_structure/serie.h"
+
+#include "defines.h"
+#include "http_handler.h"
+
+typedef struct data_handler_t {
+    uint8_t data_code;
+    int data_size;
+    int (*mount_data_package)(buffer_t * out, int *displacement, void * data);
+    int (*print_json)(buffer_t * out, int *displacement, void * data);
+    path_t  request_path;
+} data_handler_t;
 
 typedef enum data_type_t {SERIE, RECORD} data_type_t;
 
-#define size_serie 41
-#define size_record 41
-#define size_smartdata 0
+// #define size_serie 41
+// #define size_record 41
+// #define size_smartdata 0
 
-extern const int size_data_list[];
+extern data_handler_t data_handler[];
 
-struct Serie {
-    uint8_t version;
-    uint32_t unit;
-    int32_t x;
-    int32_t y;
-    int32_t z;
-    int32_t dev;
-    uint32_t r;
-    uint64_t t0;
-    uint64_t t1;
-};
 
-struct Record {
-    uint8_t version;
-    uint32_t unit;
-    double value;
-    uint32_t uncertainty;
-    int32_t x;
-    int32_t y;
-    int32_t z;
-    uint32_t dev;
-    uint64_t t;
-};
-
-struct Credentials
+typedef struct credentials_t
 {
-    char * domain;
-    char * username;
-    char *  password;
-};
+    const char * domain;
+    const char * username;
+    const char *  password;
+} credentials_t;
 
-int write_size_and_value(char * buffer, char * value);
-int get_version_high(uint8_t version);
-int get_version_low(uint8_t version);
+int write_size_and_value(buffer_t * out, int *displacement, const char * value);
 
-int credentials_print(char * buffer, struct Credentials * credentials);
-int credentials_print_json(char * buffer, int size, struct Credentials * credentials);
+int credentials_print(buffer_t * out, int *displacement, struct credentials_t * credentials);
+int credentials_print_json(buffer_t * out, int *displacement, struct credentials_t * credentials);
 
-int series_print(char * buffer, int size, void * data);
-int series_print_json(char * buffer, int size, void * data);
-
-int record_print(char * buffer, int size, void * data);
-int record_print_json(char * buffer, int size, void * data);
+int create_data_package( data_type_t data_type, buffer_t * out, void * data);
+int data_package_to_json(buffer_t * out, int *displacement, buffer_t * data);
+int get_index_by_data_code(uint8_t data_code);
+path_t get_request_path_of_data_package(buffer_t * data);
 
 #endif // DATA_HANDLER_H
-
-/*
-2.
-    "series" : Object
-    {
-        "version" : unsigned char
-        "unit" : unsigned long
-        "x" : long
-        "y" : long
-        "z" : long
-        "r" : unsigned long
-        "t0" : unsigned long long
-        "t1" : unsigned long long
-    }
-3. SmartData version 1.1
-struct Series {
-    unsigned char version;
-    unsigned long unit;
-    long x;
-    long y;
-    long z;
-    unsigned long r;
-    unsigned long long t0;
-    unsigned long long t1;
-}
-*/
-
-/*
-2.
-{
-    "smartdata" : Array
-    [
-        {
-            "version" : unsigned char
-            "unit" : unsigned long
-            "value" : double
-            "uncertainty" : unsigned long
-            "x" : long
-            "y" : long
-            "z" : long
-            "t" : unsigned long long
-            "dev" : unsigned long
-        }
-    ]
-    "credentials" : Object
-    {
-        "domain" : string
-        "username" : string
-        "password" : string
-    }    
-}
-
-3. SmartData version 1.1
-struct SmartData {
-    unsigned char version;
-    unsigned long unit;
-    double value;
-    unsigned long uncertainty;
-    long x;
-    long y;
-    long z;
-    unsigned long dev;
-    unsigned long long t;
-}
-*/

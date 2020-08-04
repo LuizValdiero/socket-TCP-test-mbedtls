@@ -16,7 +16,7 @@ int recv_data(unsigned char * buffer, size_t len);
 
 int open_connections(const char * server_addr, const int port, \
                 const char * hostname, const char * ca_crt, size_t ca_crt_len);
-void open_tcp(int * sockfd, struct sockaddr_in * server, \
+int open_tcp(int * sockfd, struct sockaddr_in * server, \
                 const char * server_addr, const int port);
 int open_tls(void * connection_struct, const char * hostname, \
                 const char * ca_crt, size_t ca_crt_len);
