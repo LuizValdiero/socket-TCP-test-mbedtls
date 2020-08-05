@@ -22,21 +22,24 @@ int record_print_json(buffer_t * out, int *displacement, void * data) {
         get_version_high(record->version), \
         get_version_low(record->version), \
         record->unit);
-
+    
     buffer += size_print;
     avaliable_size -= size_print;
-    size_print += snprintf_double(buffer, avaliable_size, record->value);
-
-    buffer += size_print;
-    avaliable_size -= size_print;
+    
+    int aux_size_print = snprintf_double(buffer, avaliable_size, record->value);
+    
+    size_print += aux_size_print;
+    buffer += aux_size_print;
+    avaliable_size -= aux_size_print;
+    
     size_print += snprintf(buffer, avaliable_size, \
-        "\", confidence\": %u, \"error\": 0, " \
+        ", \"confidence\": %u, \"error\": 0, " \
         "\"x\": %d, \"y\": %d, \"z\": %d, " \
         "\"t\": %lu, \"dev\": %u}]", \
         record->uncertainty, \
         record->x, record->y, record->z, \
         record->t, record->dev);
-
+        
     if(avaliable_size < size_print)
         return CODE_ERROR_SHORT_BUFFER;
 

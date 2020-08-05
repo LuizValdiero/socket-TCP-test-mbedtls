@@ -2,6 +2,7 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
+#include <stdio.h>
 #include <stdint.h>
 
 // TEE

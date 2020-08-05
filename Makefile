@@ -6,7 +6,7 @@ MBEDTLS_FLAGS = -I$(LIBS_DIR) -D_FILE_OFFSET_BITS=64 -L$(LIBS_DIR) -lmbedtls -lm
 
 SRCS = src/main.c
 
-//SRCS += src/crypto.c
+SRCS += src/crypto.c
 SRCS += src/connections_handler.c
 SRCS += src/data_structure/record.c
 SRCS += src/data_structure/serie.c

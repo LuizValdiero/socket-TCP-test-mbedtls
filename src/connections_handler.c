@@ -122,7 +122,7 @@ int open_tls(void * connection_struct, const char * hostname, const char * ca_cr
     
 	set_bio(&connection->ssl, &connection->sockfd, mbedtls_net_send, mbedtls_net_recv, NULL);
     
-    handshake(&connection->ssl);
+    ret = handshake(&connection->ssl);
     if(ret != 0) {
 		return ret;
     }
