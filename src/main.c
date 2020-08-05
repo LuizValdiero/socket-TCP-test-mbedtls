@@ -46,7 +46,7 @@ int port;
 
 
 #define SERIAL_LIST_SIZE 100
-#define VALUES_LIST_SIZE 2
+#define VALUES_LIST_SIZE 3
 
 struct serial_data_t {
 	unsigned char data[70];
@@ -203,6 +203,7 @@ int create_serial_package(struct values_t * values , buffer_t * package_out, \
 
 void gerate_values() {
 	time_t t = time(NULL);
+	t -= 600;
 	//
 	values_list[0].data_code = 'R';
 	values_list[0].v0 = (uint64_t) 15.5;
@@ -210,9 +211,9 @@ void gerate_values() {
 
 	for (int i = 1; i < VALUES_LIST_SIZE; i++) {
 		values_list[i].data_code = 'S';
-		t += 600;
+		t += 60;
 		values_list[i].v0 = second_to_micro(t);
-		t += 600;
+		t += 60;
 		values_list[i].v1 = second_to_micro(t);  
 	}
 }
@@ -261,14 +262,13 @@ int main( int argc, char ** argv)
 	gerate_values();
 	gerate_serial_datas(&cipher);
 
-	// i = 1, esta pulando o primeiro -> record
-	for (int i = 1; i <= serial_list_index; i++) {
+	for (int i = 0; i <= serial_list_index; i++) {
 		buffer_t package_data = { \
 			.buffer = serial_list[i].data, \
 			.buffer_size = serial_list[i].len
 			};
 		// inicio envio
-		int response_code;
+		int response_code = 0;
 		send_package( &package_data, &response_code, &cipher, &httpHeader, &credentials);
 		// fim envio
 		printf("\nresponse code: %d", response_code);

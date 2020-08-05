@@ -16,26 +16,56 @@
 #include "mbedtls/certs.h"
 
 struct connections_handle_t {
+    const char * server_addr;
+    int port;
+    const char * hostname;
+
     struct sockaddr_in server;
     int sockfd;
 
 	mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
-    mbedtls_ssl_context ssl;
+    mbedtls_ssl_context ssl; 
     mbedtls_ssl_config conf;
     mbedtls_x509_crt * cacert;
+
+    mbedtls_ssl_session ssl_sess;
 } connection;
 
+int reconnect(mbedtls_ssl_context* ssl, mbedtls_ssl_session* ssl_sess) {
+    if (ssl->state == MBEDTLS_SSL_HANDSHAKE_OVER)
+        return 0;
+
+    open_tcp(&connection.sockfd, &connection.server, \
+                connection.server_addr, connection.port);
+    
+    mbedtls_ssl_set_session(ssl, ssl_sess);
+    handshake(ssl);
+    mbedtls_ssl_get_verify_result(ssl);
+    return 0;
+}
+
 int send_data(unsigned char * buffer, size_t len) {
+    if(reconnect(&connection.ssl, &connection.ssl_sess))
+        return 0;
     return tls_handler_write(&connection.ssl, buffer, len);
 }
 int recv_data(unsigned char * buffer, size_t len) {
-    return tls_handler_read(&connection.ssl, buffer, len);
+    
+    int ret = reconnect(&connection.ssl, &connection.ssl_sess); 
+    if(ret)
+        return ret;
+    
+    ret = tls_handler_read(&connection.ssl, buffer, len);
+    return ret;
 }
 
 int open_connections(const char * server_addr, const int port, const char * hostname, const char * ca_crt, size_t ca_crt_len)
 {
     int ret;
+    connection.server_addr = server_addr;
+    connection.port = port;
+    connection.hostname = hostname;
 
     ret = open_tcp(&connection.sockfd, &connection.server, server_addr, port);
 
@@ -58,22 +88,19 @@ int open_tcp(int * sockfd, struct sockaddr_in * server, \
     {
         perror("Socket ");
         return 1;
-    } else
-    {
-        printf("Socket open - fd: %d\n", *sockfd);
     }
     struct hostent *hostStructure = gethostbyname(server_addr);
     
-    printf("Socket open - host name: %s\n", hostStructure->h_name);
+    //printf("Socket open - host name: %s\n", hostStructure->h_name);
     server->sin_family       = AF_INET;
     server->sin_port         = htons(port);
     
     struct in_addr ** addr_list = (struct in_addr **)hostStructure->h_addr_list;
-    for(int i = 0; addr_list[i] != NULL; i++) {
-        printf("%s \n", inet_ntoa(*addr_list[i]));
-    }
+    //for(int i = 0; addr_list[i] != NULL; i++) {
+    //    printf("%s \n", inet_ntoa(*addr_list[i]));
+    //}
     for (int  i = 0; addr_list[i] != NULL; i++) {
-        printf("hostStructure->h_addr_list[%d]: %s\n", i, inet_ntoa(*addr_list[i]));
+        //printf("hostStructure->h_addr_list[%d]: %s\n", i, inet_ntoa(*addr_list[i]));
         server->sin_addr = *addr_list[i];
 
         memset(server->sin_zero, 0x0, 8);
@@ -95,7 +122,7 @@ int open_tls(void * connection_struct, const char * hostname, const char * ca_cr
 
     connection->cacert =  malloc(sizeof(mbedtls_x509_crt));
 
-    initialize_tls_structures(&connection->ssl, &connection->conf, \
+    initialize_tls_structures(&connection->ssl, &connection->ssl_sess, &connection->conf, \
 			&connection->entropy, &connection->ctr_drbg, connection->cacert);
 
     ret = initialize_ctr_drbg(&connection->entropy, &connection->ctr_drbg, "tls_test", mbedtls_entropy_func);
@@ -122,12 +149,13 @@ int open_tls(void * connection_struct, const char * hostname, const char * ca_cr
     
 	set_bio(&connection->ssl, &connection->sockfd, mbedtls_net_send, mbedtls_net_recv, NULL);
     
+    mbedtls_ssl_get_session(&connection->ssl, &connection->ssl_sess);
     ret = handshake(&connection->ssl);
     if(ret != 0) {
 		return ret;
     }
 	ret = verify_server_certificate(&connection->ssl);
-    
+    //mbedtls_ssl_close_notify( &connection->ssl);
     return ret;
 }
 
@@ -143,6 +171,7 @@ void clear_structs(void * connection_struct){
     mbedtls_ssl_config_free( &connection->conf );
     mbedtls_ctr_drbg_free( &connection->ctr_drbg );
     mbedtls_entropy_free( &connection->entropy );
+    mbedtls_ssl_session_free(&connection->ssl_sess);
 
     mbedtls_x509_crt_free( connection->cacert );
     free(connection->cacert);

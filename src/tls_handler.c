@@ -3,6 +3,7 @@
 #include <string.h>
 
 void initialize_tls_structures(mbedtls_ssl_context* ssl, \
+                mbedtls_ssl_session* ssl_sess, \
                 mbedtls_ssl_config* conf, \
                 mbedtls_entropy_context* entropy, \
                 mbedtls_ctr_drbg_context* ctr_drbg, \
@@ -13,6 +14,7 @@ void initialize_tls_structures(mbedtls_ssl_context* ssl, \
     mbedtls_x509_crt_init( cacert);
     mbedtls_ssl_init( ssl);
     mbedtls_ssl_config_init( conf);
+    mbedtls_ssl_session_init(ssl_sess);
 }
 
 void finish_tls_structures(mbedtls_ssl_context* ssl, \
@@ -34,7 +36,7 @@ int initialize_ctr_drbg(mbedtls_entropy_context * entropy, \
                 int(*f_entropy)(void *, unsigned char *, size_t))
 {
 	int ret;
-	DMSG( "\n  . Seeding the random number generator..." );
+	//DMSG( "\n  . Seeding the random number generator..." );
 
     if( ( ret = mbedtls_ctr_drbg_seed( ctr_drbg, f_entropy, entropy,
                                (const unsigned char *) pers,
@@ -44,7 +46,7 @@ int initialize_ctr_drbg(mbedtls_entropy_context * entropy, \
 		tls_print_error_code(ret);
     }
 
-    DMSG( "\n  . inialized" );
+    //DMSG( "\n  . inialized" );
 
 	return ret;
 }
@@ -75,9 +77,9 @@ int setting_up_tls(mbedtls_ssl_config* conf, \
 {
 	int ret;
 
-	DMSG( "\n  . Setting up the SSL/TLS structure..." );
+	//DMSG( "\n  . Setting up the SSL/TLS structure..." );
 
-	DMSG( "\n  . mbedtls_ssl_config_defaults");	
+	//DMSG( "\n  . mbedtls_ssl_config_defaults");	
     if( ( ret = mbedtls_ssl_config_defaults(conf,
                     MBEDTLS_SSL_IS_CLIENT,
                     MBEDTLS_SSL_TRANSPORT_STREAM,
@@ -89,11 +91,11 @@ int setting_up_tls(mbedtls_ssl_config* conf, \
 
 /* OPTIONAL is not optimal for security,
      * but makes interop easier in this simplified example */
-    DMSG( "\n  . mbedtls_ssl_conf_authmode");
+    //DMSG( "\n  . mbedtls_ssl_conf_authmode");
 	mbedtls_ssl_conf_authmode( conf, MBEDTLS_SSL_VERIFY_OPTIONAL );
-    DMSG( "\n  . mbedtls_ssl_conf_rng");
+    //DMSG( "\n  . mbedtls_ssl_conf_rng");
 	mbedtls_ssl_conf_rng( conf, f_rng, ctr_drbg );
-    DMSG( "\n  . mbedtls_ssl_conf_chain");	
+    //DMSG( "\n  . mbedtls_ssl_conf_chain");	
 	mbedtls_ssl_conf_ca_chain( conf, cacert, NULL );
 	return 0;
 }
@@ -113,7 +115,7 @@ int assign_configuration(mbedtls_ssl_context * ssl, mbedtls_ssl_config * conf)
 int set_hostname(mbedtls_ssl_context * ssl ,const char * hostname)
 {
 	int ret;
-    DMSG( "\n  . mbedtls_ssl_set_hostname");	
+    //DMSG( "\n  . mbedtls_ssl_set_hostname");	
     if( ( ret = mbedtls_ssl_set_hostname( ssl, hostname ) ) != 0 )
     {
         EMSG( " failed\n  ! mbedtls_ssl_set_hostname returned %d\n\n", ret );
@@ -135,13 +137,13 @@ int handshake(mbedtls_ssl_context * ssl)
 {
 	int ret;
 
-	DMSG( "\n  . Performing the SSL/TLS handshake..." );
+	//DMSG( "\n  . Performing the SSL/TLS handshake..." );
     
     while( ( ret = mbedtls_ssl_handshake( ssl ) ) != 0 )
     {
         if( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
         {
-            EMSG( " failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n", -ret );
+            EMSG( "\n failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n", -ret );
 			tls_print_error_code(ret);
 			return ret;
         } else {
@@ -156,7 +158,7 @@ int verify_server_certificate(mbedtls_ssl_context * ssl)
 {
 	uint32_t flags;
 	
-	DMSG( "\n  . Verifying peer X.509 certificate..." );
+	//DMSG( "\n  . Verifying peer X.509 certificate..." );
     if( ( flags = mbedtls_ssl_get_verify_result( ssl ) ) != 0 )
     {
         EMSG( " failed\n" );
@@ -189,13 +191,14 @@ int tls_handler_read(mbedtls_ssl_context * ssl, unsigned char * buffer, size_t s
 
         if( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
             continue;
-
         if( ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY ) {
-			EMSG("Error ssl read: %d\n ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY", ret);
+			//EMSG("\n Error ssl read: %d\n ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY", ret);
+            mbedtls_ssl_close_notify(ssl);
+            mbedtls_ssl_session_reset(ssl);
 			break;
 		}
 		if( ret < 0) {
-			EMSG( " failed\n  ! mbedtls_ssl_read returned -0x%x\n\n", -ret );
+			//EMSG( " failed\n  ! mbedtls_ssl_read returned -0x%x\n\n", -ret );
             tls_print_error_code(ret);
 			break;
 		}
