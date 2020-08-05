@@ -47,4 +47,7 @@ void set_bio(mbedtls_ssl_context * ssl, void  * sess_socket, \
 int handshake(mbedtls_ssl_context * ssl);
 int verify_server_certificate(mbedtls_ssl_context * ssl);
 
+int tls_is_connected(mbedtls_ssl_context* ssl);
+int tls_reconnect(mbedtls_ssl_context* ssl, mbedtls_ssl_session* ssl_sess);
+
 #endif // _TLS_HANDLER_H

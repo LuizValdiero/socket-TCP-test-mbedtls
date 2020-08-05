@@ -32,27 +32,24 @@ struct connections_handle_t {
     mbedtls_ssl_session ssl_sess;
 } connection;
 
-int reconnect(mbedtls_ssl_context* ssl, mbedtls_ssl_session* ssl_sess) {
-    if (ssl->state == MBEDTLS_SSL_HANDSHAKE_OVER)
+int reconnect() {
+    if (tls_is_connected(&connection.ssl))
         return 0;
 
     open_tcp(&connection.sockfd, &connection.server, \
                 connection.server_addr, connection.port);
     
-    mbedtls_ssl_set_session(ssl, ssl_sess);
-    handshake(ssl);
-    mbedtls_ssl_get_verify_result(ssl);
-    return 0;
+    return tls_reconnect(&connection.ssl, &connection.ssl_sess);
 }
 
 int send_data(unsigned char * buffer, size_t len) {
-    if(reconnect(&connection.ssl, &connection.ssl_sess))
+    if(reconnect())
         return 0;
     return tls_handler_write(&connection.ssl, buffer, len);
 }
 int recv_data(unsigned char * buffer, size_t len) {
     
-    int ret = reconnect(&connection.ssl, &connection.ssl_sess); 
+    int ret = reconnect(); 
     if(ret)
         return ret;
     
@@ -70,7 +67,6 @@ int open_connections(const char * server_addr, const int port, const char * host
     ret = open_tcp(&connection.sockfd, &connection.server, server_addr, port);
 
     if(!ret) {
-        printf("server addr: %s\n", inet_ntoa(connection.server.sin_addr));
         ret = open_tls((void *) &connection, hostname, ca_crt, ca_crt_len);
         if (!ret)
             return 0;
@@ -142,7 +138,6 @@ int open_tls(void * connection_struct, const char * hostname, const char * ca_cr
 		return ret;
     }
 	ret = set_hostname( &connection->ssl, hostname);
-    printf(" %s", hostname);
     if(ret != 0) {
 		return ret;
     }

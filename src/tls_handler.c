@@ -55,7 +55,7 @@ int set_ca_root_certificate(mbedtls_x509_crt * cacert, \
                 const unsigned char * ca_crt, \
                 size_t ca_crt_len)
 {
-	DMSG( "  . Loading the CA root certificate ..." );    
+	//DMSG( "  . Loading the CA root certificate ..." );    
 	int ret;
 
     ret = mbedtls_x509_crt_parse( cacert, ca_crt, ca_crt_len);
@@ -63,9 +63,7 @@ int set_ca_root_certificate(mbedtls_x509_crt * cacert, \
     {
         EMSG( " failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n", -ret );
 		tls_print_error_code(ret);
-    } else {
-        DMSG( " \n  .  mbedtls_x509_crt_parse returned 0x%x\n\n", ret );
-	}
+    }
 
 	return 0;
 }
@@ -103,7 +101,7 @@ int setting_up_tls(mbedtls_ssl_config* conf, \
 int assign_configuration(mbedtls_ssl_context * ssl, mbedtls_ssl_config * conf)
 {
     int ret;
-    DMSG( "\n  . mbedtls_ssl_setup");	
+    //DMSG( "\n  . mbedtls_ssl_setup");	
     if( ( ret = mbedtls_ssl_setup( ssl, conf ) ) != 0 )
     {
         EMSG( " failed\n  ! mbedtls_ssl_setup returned %d  -0x%x\n\n", ret, -ret );
@@ -128,7 +126,7 @@ void set_bio(mbedtls_ssl_context * ssl, void  * sess_socket, \
                         mbedtls_ssl_send_t *f_send, mbedtls_ssl_recv_t *f_recv, \
                         mbedtls_ssl_recv_timeout_t *f_recv_timeout)
 {
-    DMSG( "\n  . mbedtls_ssl_set_bio");	
+    //DMSG( "\n  . mbedtls_ssl_set_bio");	
 	mbedtls_ssl_set_bio( ssl, sess_socket, f_send, f_recv, f_recv_timeout);
 }
 
@@ -207,6 +205,18 @@ int tls_handler_read(mbedtls_ssl_context * ssl, unsigned char * buffer, size_t s
     return ret;
 }
 
+int tls_is_connected(mbedtls_ssl_context* ssl) {
+    if (ssl->state == MBEDTLS_SSL_HANDSHAKE_OVER)
+        return 1;
+    return 0;
+}
+
+int tls_reconnect(mbedtls_ssl_context* ssl, mbedtls_ssl_session* ssl_sess) {
+    mbedtls_ssl_set_session(ssl, ssl_sess);
+    handshake(ssl);
+    mbedtls_ssl_get_verify_result(ssl);
+    return 0;
+}
 
 void tls_print_error_code( int error_code) {
     char error_buf[100];
