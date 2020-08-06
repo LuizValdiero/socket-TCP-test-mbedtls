@@ -1,8 +1,10 @@
+#include <sys/time.h>
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -46,7 +48,7 @@ int port;
 
 
 #define SERIAL_LIST_SIZE 100
-#define VALUES_LIST_SIZE 3
+#define VALUES_LIST_SIZE 5
 
 struct serial_data_t {
 	unsigned char data[70];
@@ -202,8 +204,8 @@ int create_serial_package(struct values_t * values , buffer_t * package_out, \
 }
 
 void gerate_values() {
-	time_t t = time(NULL);
-	t -= 600;
+	long int t = get_time_usec();
+	t -= 600 * 1000000; // volta 10 min
 	//
 	values_list[0].data_code = 'R';
 	values_list[0].v0 = (uint64_t) 15.5;
@@ -211,9 +213,9 @@ void gerate_values() {
 
 	for (int i = 1; i < VALUES_LIST_SIZE; i++) {
 		values_list[i].data_code = 'S';
-		t += 60;
+		t += 60000000;// 1 min
 		values_list[i].v0 = second_to_micro(t);
-		t += 60;
+		t += 60000000;// 1 min
 		values_list[i].v1 = second_to_micro(t);  
 	}
 }
@@ -262,17 +264,32 @@ int main( int argc, char ** argv)
 	gerate_values();
 	gerate_serial_datas(&cipher);
 
-	for (int i = 0; i <= serial_list_index; i++) {
+	long int sum_time_interval = 0;
+	int num_interval = 0;
+
+	for (int i = 1; i <= serial_list_index; i++) {
 		buffer_t package_data = { \
 			.buffer = serial_list[i].data, \
 			.buffer_size = serial_list[i].len
 			};
+		long int timestamp_usec0;
+		long int timestamp_usec1; /* timestamp in microsecond */
+		
+		timestamp_usec0 = get_time_usec();
 		// inicio envio
 		int response_code = 0;
 		send_package( &package_data, &response_code, &cipher, &httpHeader, &credentials);
 		// fim envio
+		timestamp_usec1 = get_time_usec();
 		printf("\nresponse code: %d", response_code);
+		printf("\n t0: %ld", timestamp_usec0);
+		printf("\n t1: %ld\n", timestamp_usec1);
+		sum_time_interval += timestamp_usec1 - timestamp_usec0;
+		num_interval++; 	
 	}
+
+	printf("\n%d envios, media de %ld us", num_interval, sum_time_interval/num_interval);
+
     printf("\nfinish all");
     close_conections();
 
