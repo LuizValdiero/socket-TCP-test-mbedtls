@@ -18,14 +18,16 @@ SRCS += src/tls_handler.c
 SRCS += src/utils/data_version_handler.c
 SRCS += src/utils/double_format_handler.c
 
-.PHONY: all my_test
+.PHONY: all my_test libs
 
 all: my_test
 
-my_test: $(SRCS)
-	@echo "compile $@"
-	@$(CC) $(FLAGS) $^ $(MBEDTLS_FLAGS) -o $@
+libs: $(LIBS_DIR)lib-mbedtls
+	@make -C $^
 
+my_test: $(SRCS) libs
+	@echo "compile $@"
+	@$(CC) $(FLAGS) $(SRCS) $(MBEDTLS_FLAGS) -o $@
 
 .PHONY: clean
 clean:
