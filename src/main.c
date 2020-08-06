@@ -212,9 +212,9 @@ void gerate_values() {
 	values_list[0].v1 = second_to_micro(t);
 
 	for (int i = 1; i < VALUES_LIST_SIZE; i++) {
-		values_list[i].data_code = 'S';
+		values_list[i].data_code = 'R';
 		t += 60000000;// 1 min
-		values_list[i].v0 = second_to_micro(t);
+		values_list[i].v0 = (uint64_t) 15.5;
 		t += 60000000;// 1 min
 		values_list[i].v1 = second_to_micro(t);  
 	}
@@ -272,7 +272,7 @@ int main( int argc, char ** argv)
 	long int sum_time_interval = 0;
 	int num_interval = 0;
 
-	for (int i = 1; i <= serial_list_index; i++) {
+	for (int i = 0; i <= serial_list_index; i++) {
 		buffer_t package_data = { \
 			.buffer = serial_list[i].data, \
 			.buffer_size = serial_list[i].len
