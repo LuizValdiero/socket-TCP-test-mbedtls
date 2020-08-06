@@ -239,16 +239,12 @@ int main( int argc, char ** argv)
 	FILE * fp;
 
     fp = fopen ("/home/luiz/Downloads/timestamps_send.txt","w");
-
-    fprintf( fp, "\n  . server_address: %s, port: %d\n", server_addr, port);
-
-    //printf( "\n  . server_address: %s, port: %d\n", server_addr, port);
     
     if (open_connections(server_addr, port, HOSTNAME, lisha_ca_crt, lisha_ca_crt_len)) {
         printf("\n  ! Error: open_connections\n");
         exit(1);
     }
-    printf("\n  . open_connections success\n");
+
     //const char * hostname = HOSTNAME;
    struct HttpHeader_t httpHeader = { \
         .method = POST, \
@@ -272,6 +268,9 @@ int main( int argc, char ** argv)
 	long int sum_time_interval = 0;
 	int num_interval = 0;
 
+    fprintf( fp, "t0, t1, interval");
+
+
 	for (int i = 0; i <= serial_list_index; i++) {
 		buffer_t package_data = { \
 			.buffer = serial_list[i].data, \
@@ -286,13 +285,14 @@ int main( int argc, char ** argv)
 		send_package( &package_data, &response_code, &cipher, &httpHeader, &credentials);
 		// fim envio
 		timestamp_usec1 = get_time_usec();
+		fprintf(fp, "\n%ld, ", timestamp_usec0);
+		fprintf(fp, "%ld, ", timestamp_usec1);
+		fprintf(fp, "%ld", timestamp_usec1 - timestamp_usec0);
+		
 		sum_time_interval += timestamp_usec1 - timestamp_usec0;
 		num_interval++; 	
 	}
 
-	fprintf(fp, "\n%d envios, media de %ld us", num_interval, sum_time_interval/num_interval);
-
-    fprintf(fp, "\nfinish all");
     close_conections();
 
     finish_crypto(&cipher);
