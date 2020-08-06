@@ -236,8 +236,13 @@ int main( int argc, char ** argv)
 {
 
     get_args(argc, argv, server_addr, &port);
+	FILE * fp;
 
-    printf( "\n  . server_address: %s, port: %d\n", server_addr, port);
+    fp = fopen ("/home/luiz/Downloads/timestamps_send.txt","w");
+
+    fprintf( fp, "\n  . server_address: %s, port: %d\n", server_addr, port);
+
+    //printf( "\n  . server_address: %s, port: %d\n", server_addr, port);
     
     if (open_connections(server_addr, port, HOSTNAME, lisha_ca_crt, lisha_ca_crt_len)) {
         printf("\n  ! Error: open_connections\n");
@@ -281,19 +286,16 @@ int main( int argc, char ** argv)
 		send_package( &package_data, &response_code, &cipher, &httpHeader, &credentials);
 		// fim envio
 		timestamp_usec1 = get_time_usec();
-		printf("\nresponse code: %d", response_code);
-		printf("\n t0: %ld", timestamp_usec0);
-		printf("\n t1: %ld\n", timestamp_usec1);
 		sum_time_interval += timestamp_usec1 - timestamp_usec0;
 		num_interval++; 	
 	}
 
-	printf("\n%d envios, media de %ld us", num_interval, sum_time_interval/num_interval);
+	fprintf(fp, "\n%d envios, media de %ld us", num_interval, sum_time_interval/num_interval);
 
-    printf("\nfinish all");
+    fprintf(fp, "\nfinish all");
     close_conections();
 
     finish_crypto(&cipher);
-
+    fclose (fp);
     return 0;
 }
