@@ -47,8 +47,8 @@ char server_addr[SERVER_ADDR_SIZE];
 int port;
 
 
-#define SERIAL_LIST_SIZE 100
-#define VALUES_LIST_SIZE 5
+#define SERIAL_LIST_SIZE 10
+#define VALUES_LIST_SIZE 10
 
 struct serial_data_t {
 	unsigned char data[70];
@@ -209,14 +209,14 @@ void gerate_values() {
 	//
 	values_list[0].data_code = 'R';
 	values_list[0].v0 = (uint64_t) 15.5;
-	values_list[0].v1 = second_to_micro(t);
+	values_list[0].v1 = t;
 
 	for (int i = 1; i < VALUES_LIST_SIZE; i++) {
 		values_list[i].data_code = 'R';
 		t += 60000000;// 1 min
 		values_list[i].v0 = (uint64_t) 15.5;
 		t += 60000000;// 1 min
-		values_list[i].v1 = second_to_micro(t);  
+		values_list[i].v1 = t;  
 	}
 }
 
@@ -267,11 +267,13 @@ int main( int argc, char ** argv)
 
 	long int sum_time_interval = 0;
 	int num_interval = 0;
+    long int times[serial_list_index];
 
-    fprintf( fp, "t0, t1, interval");
-
-
-	for (int i = 0; i <= serial_list_index; i++) {
+	int response_code = 0;
+	send_package( (buffer_t *) &(buffer_t){ .buffer = serial_list[0].data, .buffer_size = serial_list[0].len}, \
+				&response_code, &cipher, &httpHeader, &credentials);
+		
+	for (int i = 1; i <= serial_list_index; i++) {
 		buffer_t package_data = { \
 			.buffer = serial_list[i].data, \
 			.buffer_size = serial_list[i].len
@@ -284,14 +286,30 @@ int main( int argc, char ** argv)
 		int response_code = 0;
 		send_package( &package_data, &response_code, &cipher, &httpHeader, &credentials);
 		// fim envio
+		//printf("\n response code: %d", response_code);
 		timestamp_usec1 = get_time_usec();
-		fprintf(fp, "\n%ld, ", timestamp_usec0);
-		fprintf(fp, "%ld, ", timestamp_usec1);
-		fprintf(fp, "%ld", timestamp_usec1 - timestamp_usec0);
-		
 		sum_time_interval += timestamp_usec1 - timestamp_usec0;
-		num_interval++; 	
-	}
+        times[i] = timestamp_usec1 - timestamp_usec0;
+        num_interval++;
+        
+		/*
+		if (i > 0) {
+            sum_time_interval += timestamp_usec1 - timestamp_usec0;
+            times[i] = timestamp_usec1 - timestamp_usec0;
+            num_interval++;
+            //diff = sum_time_interval*1.0/num_interval;
+            //if (last_diff > 0 && last_diff < diff * 1.0001 && last_diff > diff * 0.9999) {
+            //    break;
+            //}
+			*/
+        }
+	fprintf(fp, "\nnum_interval,media(us)");
+	fprintf(fp, "\n%d, %ld", num_interval, sum_time_interval/num_interval);
+    fprintf(fp, "\nenvio, intervalo(us)");
+	for (int i = 0; i <= num_interval; ++i)
+    {
+        fprintf(fp, "\n%d, %ld", i, times[i]);
+    }
 
     close_conections();
 
